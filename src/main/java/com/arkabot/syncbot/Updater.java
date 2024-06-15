@@ -71,14 +71,12 @@ public class Updater {
 
                     // Compare with current version
                     String currentVersion = getCurrentVersion(context);
+                    FileLogger.log(context, "Current Version: " + currentVersion);
                     if (!currentVersion.equals(latestVersion)) {
-                        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = prefs.edit();
-                        editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
-                        editor.apply();
                         return true;
                     } else {
                         FileLogger.log(context, "Current version is up-to-date: " + currentVersion);
+                        return false;
                     }
                 } else {
                     FileLogger.log(context, "Failed to fetch update info. Response code: " + responseCode);
@@ -93,13 +91,9 @@ public class Updater {
         @Override
         protected void onPostExecute(Boolean updateAvailable) {
             if (updateAvailable) {
-                // Notify user about the update
-                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                boolean isUpdateAvailable = prefs.getBoolean(KEY_UPDATE_AVAILABLE, false);
-                if (isUpdateAvailable) {
-                    FileLogger.log(context, "Update available.");
-                    Updater.promptUpdate(context, updateUrl);
-                }
+                // Prompt user about the update
+                FileLogger.log(context, "Update available. Prompting user.");
+                Updater.promptUpdate(context, updateUrl);
             } else {
                 // Log the current version number if no update is needed
                 String currentVersion = getCurrentVersion(context);
