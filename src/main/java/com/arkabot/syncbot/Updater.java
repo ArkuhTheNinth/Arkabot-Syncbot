@@ -94,7 +94,7 @@ public class Updater {
             } else {
                 // Log the current version number if no update is needed
                 String currentVersion = getCurrentVersion(context);
-                FileLogger.log(context, "No update needed. Current version: " + currentVersion);
+                FileLogger.log(context, "No update needed. Current version: " + currentVersion + "matches latest release");
             }
         }
 
