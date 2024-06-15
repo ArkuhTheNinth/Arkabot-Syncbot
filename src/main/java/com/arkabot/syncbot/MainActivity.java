@@ -17,10 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.documentfile.provider.DocumentFile;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity implements FileLogger.LogUpdateListener, FolderPicker.FolderPickerListener {
     private TokenManager tokenManager;
@@ -72,22 +69,9 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         FileLogger.log(this, "Handling intent");
         handleIntent(getIntent());
 
-        // Schedule daily update checks
-        FileLogger.log(this, "Scheduling daily update checks");
-        PeriodicWorkRequest updateCheckRequest = new PeriodicWorkRequest.Builder(UploadWorker.class, 1, TimeUnit.DAYS) // Ensure this class exists
-                .build();
-        WorkManager.getInstance(this).enqueue(updateCheckRequest);
-
         // Check for updates on launch
-        FileLogger.log(this, "Checking for updates on launch");
+        FileLogger.log(this, "Checking for updates...");
         Updater.checkForUpdates(this);
-
-        // Prompt user if an update is available
-        SharedPreferences prefs = getSharedPreferences(Updater.PREFS_NAME, MODE_PRIVATE);
-        if (prefs.getBoolean(Updater.KEY_UPDATE_AVAILABLE, false)) {
-            FileLogger.log(this, "Update available, prompting user");
-            Updater.promptUpdate(this, "https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest");
-        }
 
         // Check and refresh token if needed
         if (tokenManager.shouldRefreshToken()) {

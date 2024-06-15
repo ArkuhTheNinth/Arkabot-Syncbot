@@ -2,7 +2,7 @@ package com.arkabot.syncbot;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -15,7 +15,6 @@ import java.net.URL;
 
 public class Updater {
     public static final String PREFS_NAME = "UpdaterPrefs";
-    public static final String KEY_UPDATE_AVAILABLE = "update_available";
     private static final String TAG = "Updater";
     private static final String UPDATE_URL = "https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest";
 
@@ -72,12 +71,7 @@ public class Updater {
                     // Compare with current version
                     String currentVersion = getCurrentVersion(context);
                     FileLogger.log(context, "Current Version: " + currentVersion);
-                    if (!currentVersion.equals(latestVersion)) {
-                        return true;
-                    } else {
-                        FileLogger.log(context, "Current version is up-to-date: " + currentVersion);
-                        return false;
-                    }
+                    return !currentVersion.equals(latestVersion);
                 } else {
                     FileLogger.log(context, "Failed to fetch update info. Response code: " + responseCode);
                 }
@@ -91,11 +85,9 @@ public class Updater {
         @Override
         protected void onPostExecute(Boolean updateAvailable) {
             if (updateAvailable) {
-                // Prompt user about the update
                 FileLogger.log(context, "Update available. Prompting user.");
                 Updater.promptUpdate(context, updateUrl);
             } else {
-                // Log the current version number if no update is needed
                 String currentVersion = getCurrentVersion(context);
                 FileLogger.log(context, "No update needed. Current version: " + currentVersion);
             }
@@ -104,7 +96,7 @@ public class Updater {
         private String getCurrentVersion(Context context) {
             try {
                 return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
-            } catch (Exception e) {
+            } catch (PackageManager.NameNotFoundException e) {
                 Log.e(TAG, "Error getting current version", e);
                 return "0.0.0"; // Default version
             }
