@@ -17,7 +17,7 @@ public class Updater {
     public static final String PREFS_NAME = "UpdaterPrefs";
     public static final String KEY_UPDATE_AVAILABLE = "update_available";
     private static final String TAG = "Updater";
-    private static final String UPDATE_URL = "https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest"; // Replace with your actual URL
+    private static final String UPDATE_URL = "https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest";
 
     public static void checkForUpdates(Context context) {
         new CheckUpdateTask(context).execute(UPDATE_URL);
@@ -37,6 +37,7 @@ public class Updater {
 
     private static class CheckUpdateTask extends AsyncTask<String, Void, Boolean> {
         private Context context;
+        private String latestVersion;
 
         CheckUpdateTask(Context context) {
             this.context = context;
@@ -63,10 +64,10 @@ public class Updater {
 
                     // Parse JSON response
                     JSONObject jsonResponse = new JSONObject(response.toString());
-                    String latestVersion = jsonResponse.getString("tag_name");
+                    latestVersion = jsonResponse.getString("tag_name");
                     Log.d(TAG, "Latest Version: " + latestVersion);
 
-                    // Compare with current version (you need to implement getCurrentVersion())
+                    // Compare with current version
                     String currentVersion = getCurrentVersion(context);
                     if (!currentVersion.equals(latestVersion)) {
                         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -90,6 +91,10 @@ public class Updater {
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
                 editor.apply();
+            } else {
+                // Log the current version number if no update is needed
+                String currentVersion = getCurrentVersion(context);
+                FileLogger.log(context, "No update needed. Current version: " + currentVersion);
             }
         }
 
