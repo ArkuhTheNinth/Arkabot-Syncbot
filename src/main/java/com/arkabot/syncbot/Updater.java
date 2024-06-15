@@ -95,11 +95,11 @@ public class Updater {
             if (updateAvailable) {
                 // Notify user about the update
                 SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
-                editor.apply();
-                FileLogger.log(context, "Update available.");
-                Updater.promptUpdate(context, updateUrl);
+                boolean isUpdateAvailable = prefs.getBoolean(KEY_UPDATE_AVAILABLE, false);
+                if (isUpdateAvailable) {
+                    FileLogger.log(context, "Update available.");
+                    Updater.promptUpdate(context, updateUrl);
+                }
             } else {
                 // Log the current version number if no update is needed
                 String currentVersion = getCurrentVersion(context);
