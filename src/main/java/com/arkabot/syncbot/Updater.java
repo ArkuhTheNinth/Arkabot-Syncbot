@@ -38,6 +38,7 @@ public class Updater {
     private static class CheckUpdateTask extends AsyncTask<String, Void, Boolean> {
         private Context context;
         private String latestVersion;
+        private String updateUrl;
 
         CheckUpdateTask(Context context) {
             this.context = context;
@@ -51,7 +52,7 @@ public class Updater {
                 connection.setRequestMethod("GET");
 
                 int responseCode = connection.getResponseCode();
-                Log.d(TAG, "Response Code: " + responseCode);
+                FileLogger.log(context, "Response Code: " + responseCode);
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                     String inputLine;
@@ -65,7 +66,8 @@ public class Updater {
                     // Parse JSON response
                     JSONObject jsonResponse = new JSONObject(response.toString());
                     latestVersion = jsonResponse.getString("tag_name");
-                    Log.d(TAG, "Latest Version: " + latestVersion);
+                    updateUrl = jsonResponse.getString("html_url");
+                    FileLogger.log(context, "Latest Version: " + latestVersion);
 
                     // Compare with current version
                     String currentVersion = getCurrentVersion(context);
@@ -75,10 +77,15 @@ public class Updater {
                         editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
                         editor.apply();
                         return true;
+                    } else {
+                        FileLogger.log(context, "Current version is up-to-date: " + currentVersion);
                     }
+                } else {
+                    FileLogger.log(context, "Failed to fetch update info. Response code: " + responseCode);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error checking for updates", e);
+                FileLogger.log(context, "Error checking for updates: " + e.getMessage());
             }
             return false;
         }
@@ -91,10 +98,12 @@ public class Updater {
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
                 editor.apply();
+                FileLogger.log(context, "Update available.");
+                Updater.promptUpdate(context, updateUrl);
             } else {
                 // Log the current version number if no update is needed
                 String currentVersion = getCurrentVersion(context);
-                FileLogger.log(context, "No update needed. Current version: " + currentVersion + "matches latest release");
+                FileLogger.log(context, "No update needed. Current version: " + currentVersion);
             }
         }
 

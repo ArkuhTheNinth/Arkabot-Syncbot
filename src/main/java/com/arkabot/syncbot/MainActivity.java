@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         super.onCreate(savedInstanceState);
 
         // Initialize logging as early as possible
-        FileLogger.log(this, "SyncBot is running. Hi!");
+        FileLogger.log(this, "App launched");
 
         setContentView(R.layout.activity_main);
 
@@ -72,6 +72,12 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         FileLogger.log(this, "Handling intent");
         handleIntent(getIntent());
 
+        // Schedule daily update checks
+        FileLogger.log(this, "Scheduling daily update checks");
+        PeriodicWorkRequest updateCheckRequest = new PeriodicWorkRequest.Builder(UploadWorker.class, 1, TimeUnit.DAYS) // Ensure this class exists
+                .build();
+        WorkManager.getInstance(this).enqueue(updateCheckRequest);
+
         // Check for updates on launch
         FileLogger.log(this, "Checking for updates on launch");
         Updater.checkForUpdates(this);
@@ -80,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         SharedPreferences prefs = getSharedPreferences(Updater.PREFS_NAME, MODE_PRIVATE);
         if (prefs.getBoolean(Updater.KEY_UPDATE_AVAILABLE, false)) {
             FileLogger.log(this, "Update available, prompting user");
-            Updater.promptUpdate(this, "https://github.com/yourusername/yourrepository/releases/latest"); // Replace with your actual repository
+            Updater.promptUpdate(this, "https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest");
         }
 
         // Check and refresh token if needed
@@ -186,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         findViewById(R.id.chooseLocalFolderButton).setOnClickListener(v -> folderPicker.chooseFolder());
 
         pushFilesButton.setOnClickListener(v -> {
-            FileLogger.log(this, "Pushing files...");
+            FileLogger.log(this, "Push Files button was clicked.");
             if (localDirectoryUri != null && dropboxDirectory != null) {
                 startFileUpload();
             } else {
@@ -209,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
     }
 
     public void startFileUpload() {
-        FileLogger.log(this, "Starting file upload...");
+        FileLogger.log(this, "Starting file upload.");
 
         if (!isValidDirectory(Uri.parse(localDirectoryUri))) {
             FileLogger.log(this, "Error: Selected local directory is not valid.");
