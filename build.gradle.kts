@@ -11,7 +11,7 @@ android {
         minSdk = 23
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.6.0-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "DROPBOX_CLIENT_ID", "\"qwnd8vi11pc7iiv\"")
         buildConfigField("String", "DROPBOX_CLIENT_SECRET", "\"mcmtcpkd43pp4f7\"")

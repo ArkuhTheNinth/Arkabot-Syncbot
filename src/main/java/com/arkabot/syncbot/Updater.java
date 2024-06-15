@@ -4,80 +4,102 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.AsyncTask;
+import android.util.Log;
 import androidx.appcompat.app.AlertDialog;
-import androidx.work.Worker;
-import androidx.work.WorkerParameters;
 import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class Updater extends Worker {
-    public static final String PREFS_NAME = "app_prefs";
+public class Updater {
+    public static final String PREFS_NAME = "UpdaterPrefs";
     public static final String KEY_UPDATE_AVAILABLE = "update_available";
-
-    public Updater(Context context, WorkerParameters workerParams) {
-        super(context, workerParams);
-    }
-
-    @Override
-    public Result doWork() {
-        checkForUpdates(getApplicationContext());
-        return Result.success();
-    }
+    private static final String TAG = "Updater";
+    private static final String UPDATE_URL = "https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest"; // Replace with your actual URL
 
     public static void checkForUpdates(Context context) {
-        FileLogger.log(context, "Checking for updates...");
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://api.github.com/repos/ArkuhTheNinth/Arkabot-Syncbot/releases/latest");
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                int responseCode = urlConnection.getResponseCode();
+        new CheckUpdateTask(context).execute(UPDATE_URL);
+    }
 
-                if (responseCode == 200) {
-                    FileLogger.log(context, "Update check successful. Response code: 200");
-                    BufferedReader in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                    StringBuilder content = new StringBuilder();
+    public static void promptUpdate(Context context, String url) {
+        new AlertDialog.Builder(context)
+                .setTitle("Update Available")
+                .setMessage("A new version of the app is available. Do you want to update?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    // Open the update URL
+                    context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                })
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private static class CheckUpdateTask extends AsyncTask<String, Void, Boolean> {
+        private Context context;
+
+        CheckUpdateTask(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        protected Boolean doInBackground(String... urls) {
+            try {
+                URL url = new URL(urls[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+
+                int responseCode = connection.getResponseCode();
+                Log.d(TAG, "Response Code: " + responseCode);
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                     String inputLine;
+                    StringBuilder response = new StringBuilder();
+
                     while ((inputLine = in.readLine()) != null) {
-                        content.append(inputLine);
+                        response.append(inputLine);
                     }
                     in.close();
 
-                    JSONObject latestRelease = new JSONObject(content.toString());
-                    String latestVersion = latestRelease.getString("tag_name");
+                    // Parse JSON response
+                    JSONObject jsonResponse = new JSONObject(response.toString());
+                    String latestVersion = jsonResponse.getString("tag_name");
+                    Log.d(TAG, "Latest Version: " + latestVersion);
 
-                    String currentVersion = BuildConfig.VERSION_NAME;
-                    FileLogger.log(context, "Current version: " + currentVersion + ", Latest version: " + latestVersion);
+                    // Compare with current version (you need to implement getCurrentVersion())
+                    String currentVersion = getCurrentVersion(context);
                     if (!currentVersion.equals(latestVersion)) {
                         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                        prefs.edit().putBoolean(KEY_UPDATE_AVAILABLE, true).apply();
-                        promptUpdate(context, latestRelease.getString("html_url"));
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
+                        editor.apply();
+                        return true;
                     }
-                } else {
-                    FileLogger.log(context, "Update check failed with response code: " + responseCode);
                 }
             } catch (Exception e) {
-                FileLogger.log(context, "Error checking for updates: " + e.getMessage());
+                Log.e(TAG, "Error checking for updates", e);
             }
-        }).start();
-    }
+            return false;
+        }
 
-    public static void promptUpdate(Context context, String updateUrl) {
-        new Handler(Looper.getMainLooper()).post(() -> {
-            new AlertDialog.Builder(context)
-                    .setTitle("Update Available")
-                    .setMessage("A new version of the app is available. Please update to the latest version.")
-                    .setPositiveButton("Update", (dialog, which) -> {
-                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl));
-                        context.startActivity(browserIntent);
-                    })
-                    .setNegativeButton("Later", null)
-                    .show();
-        });
+        @Override
+        protected void onPostExecute(Boolean updateAvailable) {
+            if (updateAvailable) {
+                // Notify user about the update
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(KEY_UPDATE_AVAILABLE, true);
+                editor.apply();
+            }
+        }
+
+        private String getCurrentVersion(Context context) {
+            try {
+                return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
+            } catch (Exception e) {
+                Log.e(TAG, "Error getting current version", e);
+                return "0.0.0"; // Default version
+            }
+        }
     }
 }

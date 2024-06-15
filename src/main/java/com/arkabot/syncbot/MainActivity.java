@@ -1,13 +1,12 @@
 package com.arkabot.syncbot;
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
+
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
 import android.widget.ScrollView;
@@ -37,15 +36,8 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSIONS);
-            }
-        }
-
-
         // Initialize logging as early as possible
-        FileLogger.log(this, "App launched");
+        FileLogger.log(this, "SyncBot is running. Hi!");
 
         setContentView(R.layout.activity_main);
 
@@ -67,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
                 .detectLeakedSqlLiteObjects()
                 .detectLeakedClosableObjects()
                 .penaltyLog()
-                .penaltyDeath()
                 .build());
 
         FileLogger.log(this, "Checking and requesting permissions");
@@ -80,13 +71,6 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         loadLogs();
         FileLogger.log(this, "Handling intent");
         handleIntent(getIntent());
-
-
-        // Schedule daily update checks
-        FileLogger.log(this, "Scheduling daily update checks");
-        PeriodicWorkRequest updateCheckRequest = new PeriodicWorkRequest.Builder(Updater.class, 1, TimeUnit.DAYS)
-                .build();
-        WorkManager.getInstance(this).enqueue(updateCheckRequest);
 
         // Check for updates on launch
         FileLogger.log(this, "Checking for updates on launch");
@@ -110,6 +94,11 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         FileLogger.log(this, "Setting log update listener");
         FileLogger.setLogUpdateListener(this);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSIONS);
+            }
+        }
     }
 
     @Override
@@ -197,7 +186,7 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
         findViewById(R.id.chooseLocalFolderButton).setOnClickListener(v -> folderPicker.chooseFolder());
 
         pushFilesButton.setOnClickListener(v -> {
-            FileLogger.log(this, "Push Files button was clicked.");
+            FileLogger.log(this, "Pushing files...");
             if (localDirectoryUri != null && dropboxDirectory != null) {
                 startFileUpload();
             } else {
@@ -220,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
     }
 
     public void startFileUpload() {
-        FileLogger.log(this, "Starting file upload.");
+        FileLogger.log(this, "Starting file upload...");
 
         if (!isValidDirectory(Uri.parse(localDirectoryUri))) {
             FileLogger.log(this, "Error: Selected local directory is not valid.");
@@ -257,8 +246,13 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
 
     private void uploadFileToDropbox(DocumentFile file, String dropboxDirectory) throws IOException {
         FileLogger.log(this, "Uploading file " + file.getName() + " to Dropbox directory: " + dropboxDirectory);
-        FilePusher filePusher = new FilePusher(this);
-        filePusher.uploadFileToDropbox(file, dropboxDirectory);
+        try {
+            FilePusher filePusher = new FilePusher(this);
+            filePusher.uploadFileToDropbox(file, dropboxDirectory);
+        } catch (Exception e) {
+            FileLogger.log(this, "Unexpected error during upload: " + e.getMessage());
+            throw new IOException(e);
+        }
     }
 
     private void checkAndRequestPermissions() {
@@ -272,11 +266,12 @@ public class MainActivity extends AppCompatActivity implements FileLogger.LogUpd
 
     private boolean hasStoragePermission() {
         int readPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
-        return readPermission == PackageManager.PERMISSION_GRANTED;
+        int writePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        return readPermission == PackageManager.PERMISSION_GRANTED && writePermission == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestStoragePermission() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
     }
 
     @Override
