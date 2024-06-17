@@ -1,1 +1,53 @@
-/build
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+build/
+*/build/
+
+# Gradle files
+.gradle/
+build/
+*/build/
+local.properties
+.gradle/
+gradle-app.setting
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+*.jks
+*.keystore
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Android Studio generated files
+.idea
+.navigation
+local.properties
+.gradle/
+**/build/
+
+# Ignore Mac system files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
+desktop.ini
