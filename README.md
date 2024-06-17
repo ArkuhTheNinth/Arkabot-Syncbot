@@ -5,4 +5,5 @@
 - PDF files that are successfully uploaded are deleted from device. 
 - Checks for updates via github repo releases
 - Upload worker uses background threads so UI can update logs in case of issues.
-- As of v0.6.0-beta, the app is now ready for field testing.
+
+
